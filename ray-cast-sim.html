@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<body style="margin:0; overflow:hidden; background:#000;">
+<canvas id="canvas"></canvas>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const player = { x: 300, y: 200, angle: 0, speed: 4 };
+const keys = {};
+
+window.addEventListener('keydown', e => keys[e.code] = true);
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+const walls = [
+    { a: {x: 200, y: 100}, b: {x: 400, y: 100} },
+    { a: {x: 400, y: 100}, b: {x: 400, y: 300} },
+    { a: {x: 400, y: 300}, b: {x: 200, y: 300} },
+    { a: {x: 200, y: 300}, b: {x: 200, y: 100} }
+];
+
+function draw() {
+    // プレイヤー移動
+    if (keys['KeyW']) { player.x += Math.cos(player.angle) * player.speed; player.y += Math.sin(player.angle) * player.speed; }
+    if (keys['KeyS']) { player.x -= Math.cos(player.angle) * player.speed; player.y -= Math.sin(player.angle) * player.speed; }
+    if (keys['KeyA']) player.angle -= 0.1;
+    if (keys['KeyD']) player.angle += 0.1;
+
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 壁描画（太くして見やすく）
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2;
+    walls.forEach(w => {
+        ctx.beginPath(); ctx.moveTo(w.a.x, w.a.y); ctx.lineTo(w.b.x, w.b.y); ctx.stroke();
+    });
+
+    // レイ描画
+    for (let i = -30; i < 30; i++) {
+        let angle = player.angle + (i * Math.PI / 180);
+        let minD = Infinity;
+        let closest = null;
+
+        walls.forEach(wall => {
+            const x1 = wall.a.x, y1 = wall.a.y, x2 = wall.b.x, y2 = wall.b.y;
+            const x3 = player.x, y3 = player.y, x4 = player.x + Math.cos(angle) * 1000, y4 = player.y + Math.sin(angle) * 1000;
+            const den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+            if (den !== 0) {
+                const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den;
+                const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / den;
+                if (t > 0 && t < minD && u >= 0 && u <= 1) {
+                    minD = t;
+                    closest = { x: x1 + u * (x2 - x1), y: y1 + u * (y2 - y1) };
+                }
+            }
+        });
+
+        if (closest) {
+            ctx.strokeStyle = 'lime'; // 明るい緑で見やすく
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(player.x, player.y); ctx.lineTo(closest.x, closest.y); ctx.stroke();
+        }
+    }
+    requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>
